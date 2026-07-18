@@ -57,3 +57,7 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   extends `AbstractMode`, which only logs on enter/exit and leaves `tick()` a no-op, since
   no concrete `Task`s exist yet to push. Registration happens in
   `SkyAutomataClient.onInitializeClient()`, which stays the composition root.
+- Moved the concrete mode classes into a new `client.bot.modes` subpackage, separate from
+  the core engine (`Mode`/`ModeManager`/`Task`/`TaskQueue`/`ModeRegistry`, which stay in
+  `bot`), and added `IdleMode` as the default active mode — `ModeManager` now starts on
+  `idle` instead of `null`, so the FSM always has a defined active mode.
