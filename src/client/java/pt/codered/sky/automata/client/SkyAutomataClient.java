@@ -39,6 +39,8 @@ public class SkyAutomataClient implements ClientModInitializer {
 
 		MODE_MANAGER.setMode(ModeRegistry.get("idle"));
 
+		ModeCommands.register();
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> MODE_MANAGER.tick());
 	}
 }

@@ -61,6 +61,10 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   the core engine (`Mode`/`ModeManager`/`Task`/`TaskQueue`/`ModeRegistry`, which stay in
   `bot`), and added `IdleMode` as the default active mode — `ModeManager` now starts on
   `idle` instead of `null`, so the FSM always has a defined active mode.
+
+## Day 2 — 2026-07-19
+
+### Breakthroughs
 - Added mode-change chat feedback: `ModeManager` gained a `ModeChangeListener`
   (`onModeChange(previous, next)`, fired from `setMode()`) and `Mode` gained a
   `getName()` default (backed by `AbstractMode`'s stored name). `SkyAutomataClient`
@@ -68,3 +72,19 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   player exists, keeping the `Minecraft`/`Component` chat APIs out of the `bot`/`bot.modes`
   packages entirely — the Model layer only exposes the change event, the View-ish reaction
   lives in the composition root, in keeping with the MVVM separation already decided on.
+  Verified against the decompiled source that `displayClientMessage` routes straight into
+  `Minecraft.getChatListener().handleSystemMessage(...)` with no `connection.send(...)` —
+  it's a local-only HUD insert, never sent over the network, so it's never visible to the
+  server or other players.
+- Registered `/automata <mode>` as a client-side Brigadier command
+  (`net.fabricmc.fabric.api.client.command.v2`, already available transitively via the
+  `fabric-api` umbrella dependency — no `build.gradle.kts` change needed) in a new
+  `ModeCommands` class. It builds one subcommand per id currently in `ModeRegistry`
+  (`idle`, `farming`, `mining`, `combat`, `foraging`, `fishing`) by iterating
+  `ModeRegistry.ids()`, so a future mode only needs registering in `ModeRegistry` — the
+  command tree picks it up automatically, no separate command wiring per mode. Each
+  subcommand just calls `MODE_MANAGER.setMode(...)`; the existing mode-change chat
+  listener already provides the player-facing confirmation, so the command itself needs
+  no separate feedback. Chose the `/automata <mode>` namespaced shape over top-level
+  per-mode commands (`/farming`, `/combat`, ...) specifically to avoid claiming common
+  top-level words that could collide with other mods.
