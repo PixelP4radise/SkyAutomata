@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "sky-automata",
+	"version": "${version}",
+	"name": "Sky Automata",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/sky-automata/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"pt.codered.sky.automata.SkyAutomata"
+		],
+		"client": [
+			"pt.codered.sky.automata.client.SkyAutomataClient"
+		]
+	},
+	"mixins": [
+		"sky-automata.mixins.json",
+		{
+			"config": "sky-automata.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.8",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
