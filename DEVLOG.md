@@ -61,3 +61,10 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   the core engine (`Mode`/`ModeManager`/`Task`/`TaskQueue`/`ModeRegistry`, which stay in
   `bot`), and added `IdleMode` as the default active mode — `ModeManager` now starts on
   `idle` instead of `null`, so the FSM always has a defined active mode.
+- Added mode-change chat feedback: `ModeManager` gained a `ModeChangeListener`
+  (`onModeChange(previous, next)`, fired from `setMode()`) and `Mode` gained a
+  `getName()` default (backed by `AbstractMode`'s stored name). `SkyAutomataClient`
+  registers a listener that posts `LocalPlayer.displayClientMessage(...)` when the local
+  player exists, keeping the `Minecraft`/`Component` chat APIs out of the `bot`/`bot.modes`
+  packages entirely — the Model layer only exposes the change event, the View-ish reaction
+  lives in the composition root, in keeping with the MVVM separation already decided on.

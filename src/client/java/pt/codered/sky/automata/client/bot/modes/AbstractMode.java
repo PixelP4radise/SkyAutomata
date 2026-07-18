@@ -17,6 +17,11 @@ public abstract class AbstractMode implements Mode {
 	}
 
 	@Override
+	public String getName() {
+		return name;
+	}
+
+	@Override
 	public void onEnter() {
 		SkyAutomata.LOGGER.info("Entering {} mode", name);
 	}

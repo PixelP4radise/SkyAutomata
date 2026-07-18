@@ -7,6 +7,10 @@ package pt.codered.sky.automata.client.bot;
  * action rather than pushing on every tick.
  */
 public interface Mode {
+	default String getName() {
+		return getClass().getSimpleName();
+	}
+
 	default void onEnter() {
 	}
 

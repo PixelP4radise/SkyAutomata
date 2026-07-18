@@ -4,6 +4,10 @@ package pt.codered.sky.automata.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+
 import pt.codered.sky.automata.client.bot.ModeManager;
 import pt.codered.sky.automata.client.bot.ModeRegistry;
 import pt.codered.sky.automata.client.bot.modes.CombatMode;
@@ -25,6 +29,13 @@ public class SkyAutomataClient implements ClientModInitializer {
 		ModeRegistry.register("combat", new CombatMode());
 		ModeRegistry.register("foraging", new ForagingMode());
 		ModeRegistry.register("fishing", new FishingMode());
+
+		MODE_MANAGER.addListener((previous, next) -> {
+			LocalPlayer player = Minecraft.getInstance().player;
+			if (player != null) {
+				player.displayClientMessage(Component.literal("Sky Automata: " + next.getName() + " mode"), false);
+			}
+		});
 
 		MODE_MANAGER.setMode(ModeRegistry.get("idle"));
 
