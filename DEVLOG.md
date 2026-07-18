@@ -14,6 +14,10 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   Queue** design for autonomous behavior (Mode Manager as "brain", primitive tasks like
   `ScanTask`/`PathTask`/`EquipTask` as "actuators", async-only execution driven off
   Baritone's callbacks — never blocking the client thread or polling).
+- Keeping the `bot` package free of any `net.minecraft.client.gui`/rendering imports and
+  exposing `ModeManager` state via plain getters, so it reads as a UI-agnostic Model layer.
+  Future UI (HUD/status/mode controls) should sit behind a ViewModel wrapping
+  `ModeManager` rather than rendering code calling into it directly (MVVM).
 
 ### Problems found
 - `build.gradle.kts` only declared `loom.officialMojangMappings()` — raw Mojang mappings
@@ -38,3 +42,11 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   `Block.updateOrDestroy`'s doc comment referencing `Level#setBlock`) — official mappings
   alone ship with *zero* comments, so this confirms the Parchment layer is actually active,
   not just configured.
+- Built the HFSM + Task Queue engine itself: `Mode`, `ModeManager`, `Task`, `TaskQueue` in
+  the new `pt.codered.sky.automata.client.bot` package, wired to
+  `ClientTickEvents.END_CLIENT_TICK` via `SkyAutomataClient.MODE_MANAGER`. Deliberately
+  scoped to the engine only — no concrete `Mode`s (Lumbering/Hunting/...) or `Task`s
+  (ScanTask/PathTask/...) yet, and `PathTask` is left out entirely until Baritone is wired
+  into the build. `TaskQueue.tick()` advances at most one `Task` per call and never blocks;
+  a `Mode` is expected to check `TaskQueue.isIdle()` before pushing its next action, which
+  is what actually enforces "one primitive action per tick" rather than the queue itself.
