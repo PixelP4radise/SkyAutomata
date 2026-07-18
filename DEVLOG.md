@@ -88,3 +88,42 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   no separate feedback. Chose the `/automata <mode>` namespaced shape over top-level
   per-mode commands (`/farming`, `/combat`, ...) specifically to avoid claiming common
   top-level words that could collide with other mods.
+- Built the mode settings screen (`/automata ui`) — the first real UI, and the first time
+  the MVVM split actually gets used instead of just reserved. Added a minimal `Mode`
+  extension point (`getSettings()` returning `List<ModeSetting<?>>`, default empty — no
+  concrete `ModeSetting` implementations yet since no mode has a real setting to expose)
+  and a `ModeRegistry.idOf(Mode)` reverse lookup. New `client.bot.viewmodel.ModeUiViewModel`
+  (still zero Minecraft-client imports) tracks a *selected* mode id separately from
+  `ModeManager`'s *active* one, so browsing the list in `ModeScreen`
+  (`client.gui.ModeScreen`, a fresh package sibling to `client.bot`) never activates
+  anything — only an explicit "Activate" button (or the existing `/automata <mode>`
+  command) calls `ModeManager.setMode(...)`. Cross-checked `Screen`/`Button`'s actual
+  Mojang-mapped API (constructor, `addRenderableWidget`, `rebuildWidgets`, `Button.builder`
+  fluent shape) against this project's decompiled sources before writing the screen, same
+  as done for the chat API earlier. Not runtime-verified in a real client — no display in
+  this environment — compiled clean via `./gradlew build` only; worth a manual
+  `runClient` pass to confirm the layout actually looks right.
+
+### Problems found
+- `/automata ui` compiled fine but the screen never actually appeared in-game — confirmed
+  the runtime gap flagged above was real. Root cause, found in `ChatScreen`'s decompiled
+  source: pressing Enter runs `handleChatInput(...)` (which executes our command
+  synchronously, calling `setScreen(new ModeScreen(...))`) and then, on the very next line,
+  unconditionally calls `this.minecraft.setScreen(null)` to close the chat box — which
+  closes whatever screen is current, including the one the command just opened.
+- First attempted fix — deferring via `Minecraft.execute(() -> ...)` — turned out to be a
+  no-op and didn't actually fix it (confirmed with diagnostic logging: `removed()` fired
+  immediately, `render()` never ran once). Root cause, found in
+  `BlockableEventLoop.execute()`'s decompiled source: it only queues the task when called
+  from a *different* thread (`scheduleExecutables() = !isSameThread()`); called from the
+  render thread — which client commands already run on — it just calls `runnable.run()`
+  immediately, synchronously. So it changed nothing about the ordering versus calling
+  `setScreen` directly.
+- Real fix: added `SkyAutomataClient.runNextTick(Runnable)`, a small queue drained inside
+  the existing `ClientTickEvents.END_CLIENT_TICK` registration (alongside
+  `MODE_MANAGER.tick()`). Since that event only fires once input handling for the frame is
+  fully done, `ModeCommands`'s `ui` subcommand now queues the `setScreen(new
+  ModeScreen(...))` call there instead of running it inline — genuinely runs after
+  `ChatScreen` has closed itself, not just wrapped in a lambda that still runs at the same
+  point. General gotcha, not specific to this screen: any future command that opens a
+  `Screen` needs `SkyAutomataClient.runNextTick(...)`, not `Minecraft.execute(...)`.

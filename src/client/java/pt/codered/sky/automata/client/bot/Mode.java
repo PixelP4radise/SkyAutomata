@@ -1,5 +1,7 @@
 package pt.codered.sky.automata.client.bot;
 
+import java.util.List;
+
 /**
  * A single state in the bot's Hierarchical Finite State Machine (e.g. Lumbering, Hunting,
  * Farming). A mode drives behavior by pushing primitive {@link Task}s onto the
@@ -9,6 +11,10 @@ package pt.codered.sky.automata.client.bot;
 public interface Mode {
 	default String getName() {
 		return getClass().getSimpleName();
+	}
+
+	default List<ModeSetting<?>> getSettings() {
+		return List.of();
 	}
 
 	default void onEnter() {

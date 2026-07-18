@@ -1,6 +1,9 @@
 
 package pt.codered.sky.automata.client;
 
+import java.util.ArrayDeque;
+import java.util.Queue;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
@@ -19,6 +22,19 @@ import pt.codered.sky.automata.client.bot.modes.MiningMode;
 
 public class SkyAutomataClient implements ClientModInitializer {
 	public static final ModeManager MODE_MANAGER = new ModeManager();
+
+	private static final Queue<Runnable> NEXT_TICK_TASKS = new ArrayDeque<>();
+
+	/**
+	 * Runs {@code task} on the next {@code END_CLIENT_TICK}, i.e. after the current input
+	 * frame (and anything it does, like a chat command's own screen closing itself) has
+	 * fully finished — {@link net.minecraft.client.Minecraft#execute} does NOT achieve this
+	 * when called from the render thread, since it only defers cross-thread calls and runs
+	 * same-thread ones immediately.
+	 */
+	public static void runNextTick(Runnable task) {
+		NEXT_TICK_TASKS.add(task);
+	}
 
 	@Override
 	public void onInitializeClient() {
@@ -41,6 +57,12 @@ public class SkyAutomataClient implements ClientModInitializer {
 
 		ModeCommands.register();
 
-		ClientTickEvents.END_CLIENT_TICK.register(client -> MODE_MANAGER.tick());
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			MODE_MANAGER.tick();
+			Runnable task;
+			while ((task = NEXT_TICK_TASKS.poll()) != null) {
+				task.run();
+			}
+		});
 	}
 }

@@ -7,7 +7,12 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
+import net.minecraft.client.Minecraft;
+
+import pt.codered.sky.automata.SkyAutomata;
 import pt.codered.sky.automata.client.bot.ModeRegistry;
+import pt.codered.sky.automata.client.bot.viewmodel.ModeUiViewModel;
+import pt.codered.sky.automata.client.gui.ModeScreen;
 
 /**
  * Registers {@code /automata <mode>}, with one subcommand per id in {@link ModeRegistry} —
@@ -28,6 +33,21 @@ public final class ModeCommands {
 					return Command.SINGLE_SUCCESS;
 				}));
 			}
+			root.then(ClientCommandManager.literal("ui").executes(context -> {
+				// ChatScreen closes itself (setScreen(null)) right after a command runs, in the
+				// same synchronous call stack. Minecraft.execute() does NOT defer this when
+				// called from the render thread (it only queues cross-thread calls; same-thread
+				// ones run immediately), so genuinely defer via SkyAutomataClient.runNextTick,
+				// which only fires on the next END_CLIENT_TICK.
+				SkyAutomataClient.runNextTick(() -> {
+					try {
+						Minecraft.getInstance().setScreen(new ModeScreen(new ModeUiViewModel(SkyAutomataClient.MODE_MANAGER)));
+					} catch (Exception e) {
+						SkyAutomata.LOGGER.error("Failed to open ModeScreen", e);
+					}
+				});
+				return Command.SINGLE_SUCCESS;
+			}));
 			dispatcher.register(root);
 		});
 	}

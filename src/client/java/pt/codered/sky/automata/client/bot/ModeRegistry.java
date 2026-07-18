@@ -23,6 +23,15 @@ public class ModeRegistry {
 		return MODES.get(id);
 	}
 
+	public static String idOf(Mode mode) {
+		for (Map.Entry<String, Mode> entry : MODES.entrySet()) {
+			if (entry.getValue() == mode) {
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
+
 	public static Collection<String> ids() {
 		return MODES.keySet();
 	}
