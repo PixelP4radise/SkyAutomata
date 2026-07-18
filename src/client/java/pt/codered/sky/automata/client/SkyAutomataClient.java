@@ -5,6 +5,12 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import pt.codered.sky.automata.client.bot.ModeManager;
+import pt.codered.sky.automata.client.bot.ModeRegistry;
+import pt.codered.sky.automata.client.bot.modes.CombatMode;
+import pt.codered.sky.automata.client.bot.modes.FarmingMode;
+import pt.codered.sky.automata.client.bot.modes.FishingMode;
+import pt.codered.sky.automata.client.bot.modes.ForagingMode;
+import pt.codered.sky.automata.client.bot.modes.MiningMode;
 
 public class SkyAutomataClient implements ClientModInitializer {
 	public static final ModeManager MODE_MANAGER = new ModeManager();
@@ -12,6 +18,12 @@ public class SkyAutomataClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
+		ModeRegistry.register("farming", new FarmingMode());
+		ModeRegistry.register("mining", new MiningMode());
+		ModeRegistry.register("combat", new CombatMode());
+		ModeRegistry.register("foraging", new ForagingMode());
+		ModeRegistry.register("fishing", new FishingMode());
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> MODE_MANAGER.tick());
 	}
 }

@@ -50,3 +50,10 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   into the build. `TaskQueue.tick()` advances at most one `Task` per call and never blocks;
   a `Mode` is expected to check `TaskQueue.isIdle()` before pushing its next action, which
   is what actually enforces "one primitive action per tick" rather than the queue itself.
+- Registered the first five concrete `Mode`s — `FarmingMode`, `MiningMode`, `CombatMode`,
+  `ForagingMode`, `FishingMode` (superseding the Lumbering/Hunting/Farming examples in
+  `CLAUDE.md`) — via a new `ModeRegistry` (id → `Mode` lookup) so a future
+  command/keybind/GUI can switch `ModeManager`'s active mode by id. Each mode currently
+  extends `AbstractMode`, which only logs on enter/exit and leaves `tick()` a no-op, since
+  no concrete `Task`s exist yet to push. Registration happens in
+  `SkyAutomataClient.onInitializeClient()`, which stays the composition root.
