@@ -12,7 +12,7 @@ import net.minecraft.client.Minecraft;
 import pt.codered.sky.automata.SkyAutomata;
 import pt.codered.sky.automata.client.bot.ModeRegistry;
 import pt.codered.sky.automata.client.bot.viewmodel.ModeUiViewModel;
-import pt.codered.sky.automata.client.gui.ModeScreen;
+import pt.codered.sky.automata.client.gui.ModeListScreen;
 
 /**
  * Registers {@code /automata <mode>}, with one subcommand per id in {@link ModeRegistry} —
@@ -41,9 +41,9 @@ public final class ModeCommands {
 				// which only fires on the next END_CLIENT_TICK.
 				SkyAutomataClient.runNextTick(() -> {
 					try {
-						Minecraft.getInstance().setScreen(new ModeScreen(new ModeUiViewModel(SkyAutomataClient.MODE_MANAGER)));
+						Minecraft.getInstance().setScreen(new ModeListScreen(new ModeUiViewModel(SkyAutomataClient.MODE_MANAGER)));
 					} catch (Exception e) {
-						SkyAutomata.LOGGER.error("Failed to open ModeScreen", e);
+						SkyAutomata.LOGGER.error("Failed to open ModeListScreen", e);
 					}
 				});
 				return Command.SINGLE_SUCCESS;
