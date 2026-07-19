@@ -14,7 +14,7 @@ state/conventions, DEVLOG.md documents the story of how it got there.
 
 ## Project
 
-Sky Automata is a Minecraft Fabric mod targeting Minecraft 1.21.8, built with Fabric Loom. It is currently at the
+Sky Automata is a Minecraft Fabric mod targeting Minecraft 1.21.11, built with Fabric Loom. It is currently at the
 scaffold stage — the code is still the unmodified Fabric example-mod template (mod id `sky-automata`, base package
 `pt.codered.sky.automata`, maven group `pt.codered.sky.automata`), not yet holding real mod features.
 
@@ -52,9 +52,13 @@ versions there when updating dependencies.
   wrappers, and bot logic must live in `src/client/java` (or client-only entrypoints) and never in `src/main/java`.
   This follows the same split-source-set sidedness rule as the rest of the client/server separation below —
   leaking a Baritone import into common code will crash a dedicated server with `NoClassDefFoundError`.
-- A `baritone-api-fabric-1.15.0.jar` currently sits at the repo root, unwired — it is not yet declared as a
-  dependency in `build.gradle.kts`. Add it as a client-only `modImplementation`/file dependency scoped to the
-  `client` source set when integration work begins.
+- Wired in `build.gradle.kts` as `"modClientImplementation"(files("baritone-api-fabric-1.15.0-8-gbc3dcde2.jar"))`
+  — a pre-release build from the Baritone team for 1.21.11 (its manifest's
+  `Fabric-Minecraft-Version` matches; verified against `checksums.txt` before use), not yet on a public maven
+  repo, hence the local file dependency. `modClientImplementation` (Loom's per-source-set mod-aware
+  configuration, named `mod<SourceSet>Implementation` — no Kotlin DSL accessor exists for it, hence the string
+  invocation) is what actually scopes it to the `client` source set only and gets it remapped into this
+  project's mappings; a plain `implementation`/`files(...)` would leak it onto `src/main`'s classpath too.
 
 ## Bot Logic Architecture (planned, not yet implemented)
 
@@ -83,7 +87,9 @@ autonomous bot behavior is built, not a description of current code:
   client and server; `SkyAutomataClient` (`src/client/.../client/SkyAutomataClient.java`) implements
   `ClientModInitializer` and runs client-side only. Both are registered in `src/main/resources/fabric.mod.json`
   under `entrypoints.main` / `entrypoints.client`. `SkyAutomata.MOD_ID` and `SkyAutomata.id(String)` are the
-  canonical way to build `ResourceLocation`s for this mod.
+  canonical way to build `Identifier`s for this mod (Mojang renamed `ResourceLocation` to `Identifier` at some
+  point between 1.21.8 and 1.21.11 — confirmed by an actual compile failure against the mapped 1.21.11 jar,
+  not a version-scheme-wide change).
 - **Mixins**: two separate mixin configs — `src/main/resources/sky-automata.mixins.json` (common, package
   `pt.codered.sky.automata.mixin`) and `src/client/resources/sky-automata.client.mixins.json` (client-only,
   package `pt.codered.sky.automata.client.mixin`, applied with `"environment": "client"` in `fabric.mod.json`).

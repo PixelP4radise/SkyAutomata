@@ -16,6 +16,10 @@ repositories {
 		name = "ParchmentMC"
 		url = uri("https://maven.parchmentmc.org")
 	}
+	maven {
+		name = "DevAuth"
+		url = uri("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
+	}
 }
 
 loom {
@@ -25,6 +29,19 @@ loom {
 		register("sky-automata") {
 			sourceSet(sourceSets.main.get())
 			sourceSet(sourceSets.getByName("client"))
+		}
+	}
+
+	runs {
+		named("client") {
+			// Lets runClient log into a real Microsoft account instead of an offline/fake one.
+			// DevAuth is modRuntimeOnly below, so it never ships in the built mod jar.
+			// vmArgs() (like every other RunConfigSettings mutator) logs a Loom deprecation
+			// warning on this pinned loom_version=1.17-SNAPSHOT — Loom is mid-migration to a
+			// new RunConfiguration API that isn't exposed on LoomGradleExtensionAPI yet, so
+			// there's currently no non-deprecated way to set this; harmless until Loom ships
+			// the replacement entry point.
+			vmArgs("-Ddevauth.enabled=true")
 		}
 	}
 }
@@ -40,6 +57,18 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
+
+	// Lets the dev client log into a real Microsoft account (see the loom.runs.client
+	// block above) instead of joining as an offline/fake account. Dev-only: runtimeOnly
+	// so it's never bundled into the built mod jar.
+	modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:${providers.gradleProperty("devauth_version").get()}")
+
+	// Baritone: client-only automation/pathing bot. A pre-release build from the Baritone
+	// team for 1.21.11 (matches "Fabric-Minecraft-Version" in its manifest; verified via
+	// checksums.txt), not yet published to a maven repo, hence the local file dependency.
+	// modClientImplementation (not modImplementation) keeps it out of src/main entirely —
+	// leaking it into common code crashes a dedicated server with NoClassDefFoundError.
+	"modClientImplementation"(files("baritone-api-fabric-1.15.0-8-gbc3dcde2.jar"))
 }
 
 tasks.processResources {
