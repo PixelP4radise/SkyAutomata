@@ -69,6 +69,19 @@ dependencies {
 	// modClientImplementation (not modImplementation) keeps it out of src/main entirely —
 	// leaking it into common code crashes a dedicated server with NoClassDefFoundError.
 	"modClientImplementation"(files("baritone-api-fabric-1.15.0-8-gbc3dcde2.jar"))
+
+	// Baritone embeds nether-pathfinder-1.6.jar (dev.babbaj.pathfinder.NetherPathfinder) as a
+	// Fabric jar-in-jar nested dependency (see "jars" in its fabric.mod.json). That nested jar
+	// has no fabric.mod.json of its own, and Fabric Loader only unpacks jar-in-jar nested jars
+	// for mods discovered from the mods/ folder — mods pulled in via modClientImplementation
+	// sit directly on the dev classpath and skip that extraction, so Baritone crashes at
+	// startup with NoClassDefFoundError: dev/babbaj/pathfinder/NetherPathfinder unless this is
+	// declared explicitly. Extracted straight out of the Baritone jar
+	// (unzip -p baritone-api-fabric-1.15.0-8-gbc3dcde2.jar META-INF/jars/nether-pathfinder-1.6.jar)
+	// to guarantee the exact version this Baritone build was compiled against. Plain
+	// clientImplementation, not modClientImplementation — it's not a Fabric mod and touches no
+	// Minecraft classes, so it needs no remapping.
+	"clientImplementation"(files("nether-pathfinder-1.6.jar"))
 }
 
 tasks.processResources {

@@ -59,6 +59,18 @@ versions there when updating dependencies.
   configuration, named `mod<SourceSet>Implementation` — no Kotlin DSL accessor exists for it, hence the string
   invocation) is what actually scopes it to the `client` source set only and gets it remapped into this
   project's mappings; a plain `implementation`/`files(...)` would leak it onto `src/main`'s classpath too.
+- Baritone also needs `nether-pathfinder-1.6.jar` (`dev.babbaj.pathfinder.NetherPathfinder`), wired separately
+  as `"clientImplementation"(files("nether-pathfinder-1.6.jar"))` right after the Baritone dependency. Baritone
+  embeds it as a Fabric jar-in-jar nested jar (`"jars"` in its own `fabric.mod.json`), but that nested jar has no
+  `fabric.mod.json` of its own, and Fabric Loader only unpacks jar-in-jar nested jars for mods discovered from
+  the `mods/` folder — a mod pulled in via `modClientImplementation(files(...))` sits directly on the dev
+  classpath and never goes through that extraction step, so without this explicit dependency the game builds
+  fine but crashes at startup with `NoClassDefFoundError: dev/babbaj/pathfinder/NetherPathfinder` from
+  `BaritoneAPI.<clinit>` — confirmed by actually running `./gradlew runClient`, not just `./gradlew build`. Plain
+  `clientImplementation`, not `modClientImplementation` — it isn't a Fabric mod and touches no Minecraft classes,
+  so it needs no remapping. The jar in the repo root was extracted straight out of the Baritone jar (`unzip -p
+  baritone-api-fabric-1.15.0-8-gbc3dcde2.jar META-INF/jars/nether-pathfinder-1.6.jar > nether-pathfinder-1.6.jar`)
+  to guarantee it's the exact version that Baritone build was compiled against.
 
 ## Bot Logic Architecture (planned, not yet implemented)
 

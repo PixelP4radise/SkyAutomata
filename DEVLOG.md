@@ -243,3 +243,21 @@ kept for later reference (e.g. a devlog/video writeup), not just git history.
   mappings (`baritone-api-fabric-1.15.0-8-gbc3dcde2-<hash>.jar` on the client compile
   classpath) rather than trusting a green `./gradlew build` alone, since that would also
   pass if the dependency silently resolved to nothing.
+- `./gradlew runClient` built fine but crashed the game at startup with
+  `NoClassDefFoundError: dev/babbaj/pathfinder/NetherPathfinder` from
+  `BaritoneAPI.<clinit>` — the build succeeding said nothing about the game actually
+  running, so this only showed up by launching the client, not from `./gradlew build`.
+  Root cause: Baritone embeds `nether-pathfinder-1.6.jar` as a Fabric jar-in-jar nested
+  dependency (`"jars"` in its `fabric.mod.json`), but that nested jar has no
+  `fabric.mod.json` of its own and Fabric Loader only unpacks jar-in-jar nested jars for
+  mods discovered from the `mods/` folder — a mod pulled in via
+  `modClientImplementation(files(...))` sits directly on the dev classpath and never goes
+  through that extraction step, so the nested jar silently never lands on the classpath.
+  Fixed by extracting it straight out of the Baritone jar (`unzip -p
+  baritone-api-fabric-1.15.0-8-gbc3dcde2.jar META-INF/jars/nether-pathfinder-1.6.jar >
+  nether-pathfinder-1.6.jar`, committed to the repo root alongside the Baritone jar) and
+  adding it as its own dependency — plain `"clientImplementation"(files(...))`, not
+  `modClientImplementation`, since it isn't a Fabric mod and touches no Minecraft classes
+  so needs no remapping. Verified by rerunning `runClient`: log now shows
+  `dev_babbaj_nether-pathfinder 1.6` in the loaded-mods list and `[nether-pathfinder]
+  Loaded shared library` before the game reaches the main menu cleanly.
