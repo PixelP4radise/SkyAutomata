@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.scores.DisplaySlot;
@@ -54,11 +55,12 @@ public final class ScoreboardTracker {
 
 	private static void update(Minecraft client) {
 		LocalPlayer player = client.player;
-		if (player == null || client.level == null) {
+		ClientLevel level = client.level;
+		if (player == null || level == null) {
 			return;
 		}
 
-		List<String> lines = sidebarLines(client);
+		List<String> lines = sidebarLines(level);
 		if (lines == null) {
 			return;
 		}
@@ -72,8 +74,8 @@ public final class ScoreboardTracker {
 		player.displayClientMessage(Component.literal("§7[Skyblock] §f" + summary), false);
 	}
 
-	private static List<String> sidebarLines(Minecraft client) {
-		Scoreboard scoreboard = client.level.getScoreboard();
+	private static List<String> sidebarLines(ClientLevel level) {
+		Scoreboard scoreboard = level.getScoreboard();
 		Objective sidebar = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
 		if (sidebar == null) {
 			return null;

@@ -204,7 +204,7 @@ public final class MultiChoiceColumns {
 
 	private static int clampScrollRow(int scrollRow, int totalCount, int visibleRowCount) {
 		int maxScroll = Math.max(0, totalCount - visibleRowCount);
-		return Math.max(0, Math.min(scrollRow, maxScroll));
+		return Math.clamp(scrollRow, 0, maxScroll);
 	}
 
 	/** Options not currently selected, in {@link MultiChoiceSetting#getOptions()} order. */
@@ -279,9 +279,8 @@ public final class MultiChoiceColumns {
 		int availableWidth = usableWidth / 2;
 		int selectedNameWidth = usableWidth - availableWidth;
 
-		int availableX = detailX;
 		int selectedX = detailX + availableWidth + COLUMN_GAP;
 		int arrowX = selectedX + selectedNameWidth + ARROW_GAP;
-		return new ColumnLayout(availableX, availableWidth, selectedX, selectedNameWidth, arrowX);
+		return new ColumnLayout(detailX, availableWidth, selectedX, selectedNameWidth, arrowX);
 	}
 }
