@@ -69,7 +69,7 @@ public final class MobTracker {
 			if (base == null) {
 				continue;
 			}
-			mobs.add(new MobInfo(parsed.level(), parsed.name(), parsed.currentHealth(), parsed.maxHealth(), base));
+			mobs.add(new MobInfo(parsed.level(), parsed.name(), parsed.currentHealth(), parsed.maxHealth(), base, (ArmorStand) entity));
 		}
 		mobs.sort(Comparator.comparingDouble(mob -> player.distanceTo(mob.entity())));
 		NEARBY_MOBS = List.copyOf(mobs);

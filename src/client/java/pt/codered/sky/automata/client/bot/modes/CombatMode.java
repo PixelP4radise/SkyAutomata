@@ -10,16 +10,19 @@ import pt.codered.sky.automata.SkyAutomata;
 import pt.codered.sky.automata.client.bot.ModeSetting;
 import pt.codered.sky.automata.client.bot.MultiChoiceSetting;
 import pt.codered.sky.automata.client.bot.TaskQueue;
+import pt.codered.sky.automata.client.bot.tasks.GetInRangeTask;
+import pt.codered.sky.automata.client.bot.tasks.LookAtEntityTask;
 import pt.codered.sky.automata.client.hypixel.LocationMobs;
 import pt.codered.sky.automata.client.hypixel.MobInfo;
 import pt.codered.sky.automata.client.hypixel.MobTracker;
 import pt.codered.sky.automata.client.hypixel.ScoreboardTracker;
 
 /**
- * Combat mode: for this iteration only tracks a player-selected set of target mob names
- * (filtered to the current Hypixel location via {@link LocationMobs}, in selection order for
- * future priority-between-targets use) and reports each one's nearest live match once a second —
- * no attacking/pathing behavior yet, so {@link #tick(TaskQueue)} never touches the queue.
+ * Combat mode: chases the player-selected target mobs (filtered to the current Hypixel location
+ * via {@link LocationMobs}, tried in selection order so earlier picks act as priority over later
+ * ones). Whenever the queue is idle and a valid match is nearby it pushes a
+ * {@link LookAtEntityTask} then a {@link GetInRangeTask} — no attacking yet, that's the next
+ * task to add once the bot can reliably reach a target.
  */
 public class CombatMode extends AbstractMode {
 	private static final int INTERVAL_TICKS = 20;
@@ -45,17 +48,30 @@ public class CombatMode extends AbstractMode {
 
 	@Override
 	public void tick(TaskQueue taskQueue) {
-		if (--ticksUntilNextLog > 0) {
-			return;
-		}
-		ticksUntilNextLog = INTERVAL_TICKS;
-
 		LocalPlayer player = Minecraft.getInstance().player;
 		if (player == null) {
 			return;
 		}
 
 		List<String> targets = selectedMobNames;
+		if (--ticksUntilNextLog <= 0) {
+			ticksUntilNextLog = INTERVAL_TICKS;
+			logStatus(player, targets);
+		}
+
+		if (targets.isEmpty() || !taskQueue.isIdle()) {
+			return;
+		}
+
+		MobInfo target = findTarget(targets);
+		if (target == null) {
+			return;
+		}
+		taskQueue.push(new LookAtEntityTask(target.entity()));
+		taskQueue.push(new GetInRangeTask(target.entity()));
+	}
+
+	private void logStatus(LocalPlayer player, List<String> targets) {
 		if (targets.isEmpty()) {
 			String message = "no target mobs selected";
 			SkyAutomata.LOGGER.info("[CombatMode] {}", message);
@@ -64,21 +80,32 @@ public class CombatMode extends AbstractMode {
 		}
 
 		StringBuilder log = new StringBuilder("[CombatMode]");
-		for (String target : targets) {
-			MobInfo nearest = findNearest(target);
+		for (String name : targets) {
+			MobInfo nearest = findNearest(name);
 			String line = nearest != null
-					? String.format("target=%s Lv%d %.0f/%.0f dist=%.1f", target, nearest.level(),
+					? String.format("target=%s Lv%d %.0f/%.0f dist=%.1f", name, nearest.level(),
 							nearest.currentHealth(), nearest.maxHealth(), player.distanceTo(nearest.entity()))
-					: "target=" + target + " (not currently nearby)";
+					: "target=" + name + " (not currently nearby)";
 			log.append("\n  ").append(line);
 			player.displayClientMessage(Component.literal("§7[Combat] §f" + line), false);
 		}
 		SkyAutomata.LOGGER.info(log.toString());
 	}
 
+	/** First selected name, in priority order, that currently has a valid nearby match. */
+	private static MobInfo findTarget(List<String> targets) {
+		for (String name : targets) {
+			MobInfo nearest = findNearest(name);
+			if (nearest != null) {
+				return nearest;
+			}
+		}
+		return null;
+	}
+
 	private static MobInfo findNearest(String name) {
 		for (MobInfo mob : MobTracker.NEARBY_MOBS) {
-			if (mob.name().equalsIgnoreCase(name)) {
+			if (mob.name().equalsIgnoreCase(name) && mob.isValid()) {
 				return mob; // NEARBY_MOBS is already sorted nearest-first by MobTracker
 			}
 		}
