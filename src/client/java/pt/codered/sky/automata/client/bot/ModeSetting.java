@@ -2,8 +2,7 @@ package pt.codered.sky.automata.client.bot;
 
 /**
  * A single configurable value a {@link Mode} exposes through {@link Mode#getSettings()}.
- * No concrete implementations exist yet — modes have no real settings until they have
- * real task-pushing behavior to configure.
+ * See {@link ChoiceSetting} for a setting whose value must come from a fixed set of options.
  */
 public interface ModeSetting<T> {
 	String getLabel();

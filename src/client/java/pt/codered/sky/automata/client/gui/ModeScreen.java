@@ -1,12 +1,16 @@
 package pt.codered.sky.automata.client.gui;
 
+import java.util.Objects;
+
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import pt.codered.sky.automata.client.bot.ChoiceSetting;
 import pt.codered.sky.automata.client.bot.Mode;
 import pt.codered.sky.automata.client.bot.ModeRegistry;
+import pt.codered.sky.automata.client.bot.ModeSetting;
 import pt.codered.sky.automata.client.bot.viewmodel.ModeUiViewModel;
 
 /**
@@ -18,6 +22,9 @@ public class ModeScreen extends Screen {
 	private static final int LIST_WIDTH = 100;
 	private static final int ROW_HEIGHT = 22;
 	private static final int DETAIL_X_OFFSET = LIST_WIDTH + 30;
+	private static final int OPTION_WIDTH = 150;
+	private static final int SETTINGS_TOP_PADDING = 20;
+	private static final int SETTING_LABEL_GAP = 12;
 
 	private final ModeUiViewModel viewModel;
 
@@ -40,11 +47,41 @@ public class ModeScreen extends Screen {
 
 		String selectedId = viewModel.getSelectedId();
 		if (selectedId != null) {
+			addSettingWidgets(ModeRegistry.get(selectedId));
 			addRenderableWidget(Button.builder(Component.literal("Activate"), button -> {
 				viewModel.activate(selectedId);
 				this.rebuildWidgets();
-			}).pos(10 + DETAIL_X_OFFSET, this.height - 40).size(150, 20).build());
+			}).pos(10 + DETAIL_X_OFFSET, this.height - 40).size(OPTION_WIDTH, 20).build());
 		}
+	}
+
+	private void addSettingWidgets(Mode selectedMode) {
+		int detailX = 10 + DETAIL_X_OFFSET;
+		int y = detailSettingsStartY();
+		for (ModeSetting<?> setting : selectedMode.getSettings()) {
+			if (!(setting instanceof ChoiceSetting<?> choice) || choice.getOptions().isEmpty()) {
+				continue;
+			}
+			y += SETTING_LABEL_GAP;
+			for (Object option : choice.getOptions()) {
+				boolean selected = Objects.equals(option, choice.getValue());
+				String label = selected ? "[" + option + "]" : String.valueOf(option);
+				addRenderableWidget(Button.builder(Component.literal(label), button -> {
+					setValueUnchecked(choice, option);
+					this.rebuildWidgets();
+				}).pos(detailX, y).size(OPTION_WIDTH, 20).build());
+				y += ROW_HEIGHT;
+			}
+		}
+	}
+
+	private int detailSettingsStartY() {
+		return this.height / 2 - 40 + SETTINGS_TOP_PADDING;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> void setValueUnchecked(ChoiceSetting<T> choice, Object option) {
+		choice.setValue((T) option);
 	}
 
 	private Component rowLabel(String id, Mode mode) {
@@ -74,6 +111,21 @@ public class ModeScreen extends Screen {
 		if (selectedMode.getSettings().isEmpty()) {
 			guiGraphics.drawString(this.font, "No settings yet for " + selectedMode.getName() + ".", detailX,
 					detailY + 14, 0xA0A0A0);
+			return;
+		}
+
+		int y = detailSettingsStartY();
+		for (ModeSetting<?> setting : selectedMode.getSettings()) {
+			if (!(setting instanceof ChoiceSetting<?> choice)) {
+				continue;
+			}
+			if (choice.getOptions().isEmpty()) {
+				guiGraphics.drawString(this.font, "No " + setting.getLabel().toLowerCase() + " known for this location.",
+						detailX, y, 0xA0A0A0);
+				continue;
+			}
+			guiGraphics.drawString(this.font, setting.getLabel() + ":", detailX, y, 0xFFFFFF);
+			y += SETTING_LABEL_GAP + choice.getOptions().size() * ROW_HEIGHT;
 		}
 	}
 }

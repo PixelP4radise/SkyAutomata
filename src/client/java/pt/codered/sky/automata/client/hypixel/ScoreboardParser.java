@@ -32,7 +32,7 @@ final class ScoreboardParser {
 	static String parseLocation(List<String> lines) {
 		int purseIndex = -1;
 		for (int i = 0; i < lines.size(); i++) {
-			if (PURSE.matcher(lines.get(i).trim()).matches()) {
+			if (PURSE.matcher(strip(lines.get(i))).matches()) {
 				purseIndex = i;
 				break;
 			}
@@ -41,7 +41,7 @@ final class ScoreboardParser {
 			return null;
 		}
 		for (int i = purseIndex - 1; i >= 0; i--) {
-			String candidate = lines.get(i).trim();
+			String candidate = strip(lines.get(i));
 			if (!candidate.isEmpty()) {
 				return candidate;
 			}
@@ -53,9 +53,31 @@ final class ScoreboardParser {
 		for (String line : lines) {
 			Matcher matcher = pattern.matcher(line);
 			if (matcher.find()) {
-				return matcher.group().trim();
+				return strip(matcher.group());
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * {@link String#trim()}/{@link String#strip()} both leave non-breaking spaces (U+00A0) —
+	 * which Hypixel uses as sidebar padding on at least the Crypts location line — alone by
+	 * design (Java's whitespace definition deliberately excludes them). Strip anything in
+	 * Unicode's space-separator category too so lines like " Crypts" resolve to "Crypts".
+	 */
+	private static String strip(String s) {
+		int start = 0;
+		int end = s.length();
+		while (start < end && isEdgeSpace(s.charAt(start))) {
+			start++;
+		}
+		while (end > start && isEdgeSpace(s.charAt(end - 1))) {
+			end--;
+		}
+		return s.substring(start, end);
+	}
+
+	private static boolean isEdgeSpace(char c) {
+		return Character.isWhitespace(c) || Character.isSpaceChar(c);
 	}
 }
