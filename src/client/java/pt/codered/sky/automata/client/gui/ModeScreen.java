@@ -1,16 +1,14 @@
 package pt.codered.sky.automata.client.gui;
 
-import java.util.Objects;
-
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import pt.codered.sky.automata.client.bot.ChoiceSetting;
 import pt.codered.sky.automata.client.bot.Mode;
 import pt.codered.sky.automata.client.bot.ModeRegistry;
 import pt.codered.sky.automata.client.bot.ModeSetting;
+import pt.codered.sky.automata.client.bot.MultiChoiceSetting;
 import pt.codered.sky.automata.client.bot.viewmodel.ModeUiViewModel;
 
 /**
@@ -59,15 +57,15 @@ public class ModeScreen extends Screen {
 		int detailX = 10 + DETAIL_X_OFFSET;
 		int y = detailSettingsStartY();
 		for (ModeSetting<?> setting : selectedMode.getSettings()) {
-			if (!(setting instanceof ChoiceSetting<?> choice) || choice.getOptions().isEmpty()) {
+			if (!(setting instanceof MultiChoiceSetting<?> multi) || multi.getOptions().isEmpty()) {
 				continue;
 			}
 			y += SETTING_LABEL_GAP;
-			for (Object option : choice.getOptions()) {
-				boolean selected = Objects.equals(option, choice.getValue());
+			for (Object option : multi.getOptions()) {
+				boolean selected = multi.getValue().contains(option);
 				String label = selected ? "[" + option + "]" : String.valueOf(option);
 				addRenderableWidget(Button.builder(Component.literal(label), button -> {
-					setValueUnchecked(choice, option);
+					toggleUnchecked(multi, option);
 					this.rebuildWidgets();
 				}).pos(detailX, y).size(OPTION_WIDTH, 20).build());
 				y += ROW_HEIGHT;
@@ -80,8 +78,8 @@ public class ModeScreen extends Screen {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T> void setValueUnchecked(ChoiceSetting<T> choice, Object option) {
-		choice.setValue((T) option);
+	private static <T> void toggleUnchecked(MultiChoiceSetting<T> multi, Object option) {
+		multi.toggle((T) option);
 	}
 
 	private Component rowLabel(String id, Mode mode) {
@@ -116,16 +114,16 @@ public class ModeScreen extends Screen {
 
 		int y = detailSettingsStartY();
 		for (ModeSetting<?> setting : selectedMode.getSettings()) {
-			if (!(setting instanceof ChoiceSetting<?> choice)) {
+			if (!(setting instanceof MultiChoiceSetting<?> multi)) {
 				continue;
 			}
-			if (choice.getOptions().isEmpty()) {
+			if (multi.getOptions().isEmpty()) {
 				guiGraphics.drawString(this.font, "No " + setting.getLabel().toLowerCase() + " known for this location.",
 						detailX, y, 0xA0A0A0);
 				continue;
 			}
 			guiGraphics.drawString(this.font, setting.getLabel() + ":", detailX, y, 0xFFFFFF);
-			y += SETTING_LABEL_GAP + choice.getOptions().size() * ROW_HEIGHT;
+			y += SETTING_LABEL_GAP + multi.getOptions().size() * ROW_HEIGHT;
 		}
 	}
 }

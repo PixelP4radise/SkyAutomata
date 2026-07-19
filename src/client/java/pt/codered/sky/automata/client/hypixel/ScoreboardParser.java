@@ -13,6 +13,7 @@ final class ScoreboardParser {
 	private static final Pattern DATE = Pattern.compile("(Early|Late)? ?(Spring|Summer|Autumn|Winter) \\d{1,2}(st|nd|rd|th)");
 	private static final Pattern TIME = Pattern.compile("\\d{1,2}:\\d{2}\\s?[ap]m");
 	private static final Pattern PURSE = Pattern.compile("^Purse:.*");
+	private static final Pattern NON_WORD_EDGE = Pattern.compile("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$");
 
 	private ScoreboardParser() {
 	}
@@ -60,24 +61,15 @@ final class ScoreboardParser {
 	}
 
 	/**
-	 * {@link String#trim()}/{@link String#strip()} both leave non-breaking spaces (U+00A0) —
-	 * which Hypixel uses as sidebar padding on at least the Crypts location line — alone by
-	 * design (Java's whitespace definition deliberately excludes them). Strip anything in
-	 * Unicode's space-separator category too so lines like " Crypts" resolve to "Crypts".
+	 * Hypixel pads sidebar lines with invisible filler characters that aren't always classic
+	 * whitespace — a non-breaking space (U+00A0) on at least the Crypts line, and something else
+	 * entirely on the Graveyard line that isn't even {@link Character#isSpaceChar}, both of which
+	 * survive {@link String#trim()}/{@link String#strip()} (Java's whitespace definition
+	 * deliberately excludes NBSP, and apparently doesn't cover whatever the other one is either).
+	 * Rather than chase each new filler codepoint individually, strip any edge run that isn't a
+	 * letter or digit — real location text is always a plain word, so this can't over-trim it.
 	 */
 	private static String strip(String s) {
-		int start = 0;
-		int end = s.length();
-		while (start < end && isEdgeSpace(s.charAt(start))) {
-			start++;
-		}
-		while (end > start && isEdgeSpace(s.charAt(end - 1))) {
-			end--;
-		}
-		return s.substring(start, end);
-	}
-
-	private static boolean isEdgeSpace(char c) {
-		return Character.isWhitespace(c) || Character.isSpaceChar(c);
+		return NON_WORD_EDGE.matcher(s).replaceAll("");
 	}
 }

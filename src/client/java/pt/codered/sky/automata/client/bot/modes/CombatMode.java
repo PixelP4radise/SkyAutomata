@@ -7,8 +7,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
 import pt.codered.sky.automata.SkyAutomata;
-import pt.codered.sky.automata.client.bot.ChoiceSetting;
 import pt.codered.sky.automata.client.bot.ModeSetting;
+import pt.codered.sky.automata.client.bot.MultiChoiceSetting;
 import pt.codered.sky.automata.client.bot.TaskQueue;
 import pt.codered.sky.automata.client.hypixel.LocationMobs;
 import pt.codered.sky.automata.client.hypixel.MobInfo;
@@ -16,15 +16,16 @@ import pt.codered.sky.automata.client.hypixel.MobTracker;
 import pt.codered.sky.automata.client.hypixel.ScoreboardTracker;
 
 /**
- * Combat mode: for this iteration only tracks a player-selected target mob name (filtered to the
- * current Hypixel location via {@link LocationMobs}) and reports its nearest live match once a
- * second — no attacking/pathing behavior yet, so {@link #tick(TaskQueue)} never touches the queue.
+ * Combat mode: for this iteration only tracks a player-selected set of target mob names
+ * (filtered to the current Hypixel location via {@link LocationMobs}, in selection order for
+ * future priority-between-targets use) and reports each one's nearest live match once a second —
+ * no attacking/pathing behavior yet, so {@link #tick(TaskQueue)} never touches the queue.
  */
 public class CombatMode extends AbstractMode {
 	private static final int INTERVAL_TICKS = 20;
 
-	private final ChoiceSetting<String> targetMobSetting = new TargetMobSetting();
-	private volatile String targetMobName;
+	private final MultiChoiceSetting<String> targetMobsSetting = new TargetMobsSetting();
+	private volatile List<String> selectedMobNames = List.of();
 	private int ticksUntilNextLog = 0;
 
 	public CombatMode() {
@@ -33,7 +34,7 @@ public class CombatMode extends AbstractMode {
 
 	@Override
 	public List<ModeSetting<?>> getSettings() {
-		return List.of(targetMobSetting);
+		return List.of(targetMobsSetting);
 	}
 
 	@Override
@@ -54,19 +55,25 @@ public class CombatMode extends AbstractMode {
 			return;
 		}
 
-		String target = targetMobName;
-		String message;
-		if (target == null) {
-			message = "no target mob selected";
-		} else {
+		List<String> targets = selectedMobNames;
+		if (targets.isEmpty()) {
+			String message = "no target mobs selected";
+			SkyAutomata.LOGGER.info("[CombatMode] {}", message);
+			player.displayClientMessage(Component.literal("§7[Combat] §f" + message), false);
+			return;
+		}
+
+		StringBuilder log = new StringBuilder("[CombatMode]");
+		for (String target : targets) {
 			MobInfo nearest = findNearest(target);
-			message = nearest != null
+			String line = nearest != null
 					? String.format("target=%s Lv%d %.0f/%.0f dist=%.1f", target, nearest.level(),
 							nearest.currentHealth(), nearest.maxHealth(), player.distanceTo(nearest.entity()))
 					: "target=" + target + " (not currently nearby)";
+			log.append("\n  ").append(line);
+			player.displayClientMessage(Component.literal("§7[Combat] §f" + line), false);
 		}
-		SkyAutomata.LOGGER.info("[CombatMode] {}", message);
-		player.displayClientMessage(Component.literal("§7[Combat] §f" + message), false);
+		SkyAutomata.LOGGER.info(log.toString());
 	}
 
 	private static MobInfo findNearest(String name) {
@@ -78,20 +85,20 @@ public class CombatMode extends AbstractMode {
 		return null;
 	}
 
-	private final class TargetMobSetting implements ChoiceSetting<String> {
+	private final class TargetMobsSetting implements MultiChoiceSetting<String> {
 		@Override
 		public String getLabel() {
-			return "Target Mob";
+			return "Target Mobs";
 		}
 
 		@Override
-		public String getValue() {
-			return targetMobName;
+		public List<String> getValue() {
+			return selectedMobNames;
 		}
 
 		@Override
-		public void setValue(String value) {
-			targetMobName = value;
+		public void setValue(List<String> value) {
+			selectedMobNames = List.copyOf(value);
 		}
 
 		@Override
