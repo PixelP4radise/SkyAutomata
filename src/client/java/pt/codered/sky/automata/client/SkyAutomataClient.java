@@ -19,7 +19,7 @@ import pt.codered.sky.automata.client.bot.modes.FishingMode;
 import pt.codered.sky.automata.client.bot.modes.ForagingMode;
 import pt.codered.sky.automata.client.bot.modes.IdleMode;
 import pt.codered.sky.automata.client.bot.modes.MiningMode;
-import pt.codered.sky.automata.client.hypixel.EntityDebugger;
+import pt.codered.sky.automata.client.hypixel.MobTracker;
 import pt.codered.sky.automata.client.hypixel.ScoreboardTracker;
 
 public class SkyAutomataClient implements ClientModInitializer {
@@ -59,7 +59,7 @@ public class SkyAutomataClient implements ClientModInitializer {
 
 		ModeCommands.register();
 		ScoreboardTracker.register();
-		EntityDebugger.register();
+		MobTracker.register();
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			MODE_MANAGER.tick();
